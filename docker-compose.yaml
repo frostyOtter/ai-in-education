@@ -1,0 +1,56 @@
+services:
+  backend:
+    container_name: aie-backend
+    restart: always
+    platform: linux/arm64
+
+    ports:
+      - 8080:8080
+    build:
+      dockerfile: Dockerfile
+      context: ./backend
+    networks:
+      - aie-network
+
+  voice-agents:
+    container_name: aie-voice-agent
+    restart: always
+    platform: linux/arm64
+
+    env_file:
+      - .env
+    build: 
+      dockerfile: Dockerfile
+      context: ./voice-agents
+    networks:
+      - aie-network
+    depends_on:
+      - livekit-server
+
+  livekit-server:
+    container_name: aie-livekit-server
+    image: livekit/livekit-server:latest
+
+    env_file:
+      - .env
+
+    ports:
+      - "127.0.0.1:7880:7880"
+      - "127.0.0.1:7881:7881"
+      - "127.0.0.1:7882:7882/udp"
+    command: >
+      --dev --bind 0.0.0.0
+      --keys "${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}"
+    volumes:
+      - livekit-data:/data
+    networks:
+      - aie-network
+    restart: unless-stopped
+
+networks:
+  aie-network:
+    driver: bridge
+
+volumes:
+  livekit-data:
+
